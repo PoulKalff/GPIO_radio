@@ -32,22 +32,28 @@ for port in ports:
 	usage = GPIO.gpio_function(port)
 	if port_use[usage] == 'IN':
 		input_ports.append(port)
-		GPIO.setup(port, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+		GPIO.setup(port, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 	print("%d status: %s" % (port, port_use[usage]))
 
+input_ports = [11, 18, 15, 31, 37]	# overwrite to test only pins for current projects
+
 print('Found ' + str(len(input_ports)) + ' ports set up for input:')
-print('              ', input_ports)
+print('11  18               15   31   37')
 
 # enter hardware testing loop
 counter = 0
 while True:
-	print('COUNT' + str(counter) + '-------> ', end = ' ')
-	for port in input_ports:
-		print(GPIO.input(port), '  ', end = '')
-	print()
-	sleep(1)
+	print(' ' + str(GPIO.input(11)), ' ', GPIO.input(18), '              ', GPIO.input(15), '  ', GPIO.input(31), '  ', GPIO.input(37), end='')
+	print('       <-------------  COUNT' + str(counter))
+	sleep(0.1)
 	counter += 1 
 GPIO.cleanup()
 
+
+#GPIO_volUp    = 11; GPIO.setup(GPIO_volUp,      GPIO.IN, pull_up_down = GPIO.PUD_UP)
+#GPIO_mute     = 15; GPIO.setup(GPIO_mute,       GPIO.IN, pull_up_down = GPIO.PUD_UP)
+#GPIO_volDown  = 18; GPIO.setup(GPIO_volDown,    GPIO.IN, pull_up_down = GPIO.PUD_UP)
+#GPIO_next     = 31; GPIO.setup(GPIO_next,       GPIO.IN, pull_up_down = GPIO.PUD_UP)
+#GPIO_prev     = 37; GPIO.setup(GPIO_prev,       GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 
