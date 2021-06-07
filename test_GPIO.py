@@ -50,10 +50,13 @@ while True:
 GPIO.cleanup()
 
 
-#GPIO_volUp    = 11; GPIO.setup(GPIO_volUp,      GPIO.IN, pull_up_down = GPIO.PUD_UP)
-#GPIO_mute     = 15; GPIO.setup(GPIO_mute,       GPIO.IN, pull_up_down = GPIO.PUD_UP)
-#GPIO_volDown  = 18; GPIO.setup(GPIO_volDown,    GPIO.IN, pull_up_down = GPIO.PUD_UP)
-#GPIO_next     = 31; GPIO.setup(GPIO_next,       GPIO.IN, pull_up_down = GPIO.PUD_UP)
-#GPIO_prev     = 37; GPIO.setup(GPIO_prev,       GPIO.IN, pull_up_down = GPIO.PUD_UP)
+# --- Variables -----------------------------------------------------------------------
+
+# GPIO.setmode(GPIO.BOARD)
+# GPIO_volUp      = 11; GPIO.setup(GPIO_volUp,    GPIO.IN, pull_up_down = GPIO.PUD_UP)
+# GPIO_volDown    = 12; GPIO.setup(GPIO_volDown,  GPIO.IN, pull_up_down = GPIO.PUD_UP)
+# GPIO_mute       = 15; GPIO.setup(GPIO_mute,     GPIO.IN, pull_up_down = GPIO.PUD_UP)
+# GPIO_butA       = 37; GPIO.setup(GPIO_butA,     GPIO.IN, pull_up_down = GPIO.PUD_UP)
+# GPIO_butB       = 31; GPIO.setup(GPIO_butB,     GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 
