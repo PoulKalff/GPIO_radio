@@ -35,10 +35,10 @@ for port in ports:
 		GPIO.setup(port, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 	print("%d status: %s" % (port, port_use[usage]))
 
-input_ports = [11, 18, 15, 31, 37]	# overwrite to test only pins for current projects
+input_ports = [11, 12, 15, 31, 37]	# overwrite to test only pins for current projects
 
 print('Found ' + str(len(input_ports)) + ' ports set up for input:')
-print('11  18               15   31   37')
+print('11  12               15   31   37')
 
 # enter hardware testing loop
 counter = 0
