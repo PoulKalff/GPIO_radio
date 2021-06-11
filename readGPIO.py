@@ -10,7 +10,7 @@ from time import sleep
 
 GPIO.setmode(GPIO.BOARD)
 GPIO_volUp  	= 11; GPIO.setup(GPIO_volUp,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
-GPIO_volDown  	= 12; GPIO.setup(GPIO_volDown,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
+GPIO_volDown  	= 16; GPIO.setup(GPIO_volDown,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO_mute	= 15; GPIO.setup(GPIO_mute,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO_butA	= 37; GPIO.setup(GPIO_butA,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO_butB	= 31; GPIO.setup(GPIO_butB,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
@@ -35,13 +35,10 @@ def play_control(value):	# play, toggle, pause, next, prev, stop, clearQueue
 
 def set_volume(value):		# 0 - 100
     """ Set volume, by writing to API """
-    print('IN SETVOLUME: FIRST LINE')
     result = subprocess.getoutput('/usr/bin/curl -s 0 "http://127.0.0.1:3000/api/v1/commands/?cmd=volume&volume=%s"' % str(value))
-    print('IN SETVOLUME: result=', str(result))
-    if not result: return False
-    print('IN SETVOLUME: still here....')
+    if not result:
+        return False
     jsonResult = json.loads(result)
-    print('IN SETVOLUME: returning jsonresult=', str(jsonResult))
     return True if jsonResult['response'] == 'volume Success' else False
 
 
@@ -84,47 +81,53 @@ try:
             play_control('toggle')
             print('Toggled mute/play')
         if GPIO.input(GPIO_butA) == GPIO.LOW:
-            print('Button A was pressed!')
-        if GPIO.input(GPIO_butA) == GPIO.LOW:
+            print('Button A was pressed!' + str( GPIO.input(GPIO_butA) ) )
+        if GPIO.input(GPIO_butB) == GPIO.LOW:
             print('Button B was pressed!')
 except:
    GPIO.cleanup()
 
 
-# --- Notes -----
+# [GPIO Pins]
 #
 #              +-----------------------------------------------------------------------------------------------+
 #              |                                                                                               |
-#              |     	      +-----------------------------------------------------------------------------+  |
-# [GPIO Pins]  |              |                                                                             |  |   
-#              |              |                                                      +-------------------+  |  |   
-#              |              |                                                      |                   |  |  |    
-#            Grnd            DT                                                    Grnd                  |  |  |
+#              |     	                +-------------------------------------------------------------------+  |
+#              |                        |                                                                   |  |
+#              |                        |                                            +-------------------+  |  |
+#              |                        |                                            |                   |  |  |
+#            Grnd                      DT                                          Grnd                  |  |  |
 # +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+  |  |  |
 # | 02 | 04 | 06 | 08 | 10 | 12 | 14 | 16 | 18 | 20 | 22 | 24 | 26 | 28 | 30 | 32 | 34 | 36 | 38 | 40 |  |  |  |
 # +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+  |  |  |
 # | 01 | 03 | 05 | 07 | 09 | 11 | 13 | 15 | 17 | 19 | 21 | 23 | 25 | 27 | 29 | 31 | 33 | 35 | 37 | 39 |  |  |  |
 # +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+  |  |  |
 #  3.3V                      CLK       SW                                     ButA           ButB        |  |  |
-#   |                         |         |                                       |              |         |  |  | 
-#   +-------------------+     | +---------------------------------------------------------------------------+  |
-#                       |     | |       |                                       |              |         |     |      
-#                       |     | | +-----+                                       |              |         |     |      
-#                       |     | | |                                             |              |         |     |      
-#                       +-----------+                                           |  +--------------+------+     |
-#                             | | | |                                           |  |           |  |            |
-#                             | | | | +------------------------------------------------------------------------+
-#                             | | | | |                                         |  |           |  |
-#                             | | | | |                                         |  |           |  |
-#                             C D S 3 G                                         B  G           B  G
-#                             L T W . r                                         u  r           u  r
-#                             K | | 3 n                                         t  n           t  n
-#                             | | | V d                                         A  d           B  d
-#                             | | | | |                                         |  |           |  |
-#                           +-+-+-+-+-+-+                                    +--+--+--+     +--+--+--+
-#                           |           |                                    |        |     |        |
-#                           | Rotary    |                                    | Button |     | Button |
-#                           |   Encoder |                                    |    A   |     |    B   |
-#                           |           |                                    |        |     |        |
-#                           +-----------+                                    +--------+     +--------+
+#   |                         |         |                                       |              |         |  |  |
+#   |                         |  +--------------------------------------------------------------------------+  |
+#   |                         |  |      |                                       |              |         |     |
+#   |                         |  |  +---+                                       |              |         |     |
+#   |                         |  |  |                                           |              |         |     |
+#   +----------------------------------+                                        |  +--------------+------+     |
+#                             |  |  |  |                                        |  |           |  |            |
+#                             |  |  |  |  +--------------------------------------------------------------------+
+#                             |  |  |  |  |                                     |  |           |  |
+#                             |  |  |  |  |                                     |  |           |  |
+#                             C  D  S  3  G                                     B  G           B  G
+#                             L  T  W  .  r                                     u  r           u  r
+#                             K  |  |  3  n                                     t  n           t  n
+#                             |  |  |  V  d                                     A  d           B  d
+#                             |  |  |  |  |                                     |  |           |  |
+#                           +-+--+--+--+--+-+                                +--+--+--+     +--+--+--+
+#                           |               |                                |        |     |        |
+#                           |               |                                | Button |     | Button |
+#                           |               |                                |    A   |     |    B   |
+#                           |               |                                |        |     |        |
+#                           |   Rotary      |                                +--------+     +--------+
+#                           |     Encoder   |
+#                           |               |
+#                           |               |
+#                           |               |
+#                           |               |
+#                           +---------------+
 #

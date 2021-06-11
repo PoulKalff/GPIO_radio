@@ -38,13 +38,13 @@ for port in ports:
 input_ports = [11, 12, 15, 31, 37]	# overwrite to test only pins for current projects
 
 print('Found ' + str(len(input_ports)) + ' ports set up for input:')
-print('11  12               15   31   37')
+print('11  16               15   31   37')
 
 # enter hardware testing loop
 counter = 0
 while True:
-	print(' ' + str(GPIO.input(11)), ' ', GPIO.input(18), '              ', GPIO.input(15), '  ', GPIO.input(31), '  ', GPIO.input(37), end='')
-	print('       <-------------  COUNT' + str(counter))
+	print(' ' + str(GPIO.input(11)), ' ', GPIO.input(16), '              ', GPIO.input(15), '  ', GPIO.input(31), '  ', GPIO.input(37), end='')
+	print(' --- COUNT: ' + str(counter))
 	sleep(0.1)
 	counter += 1 
 GPIO.cleanup()
