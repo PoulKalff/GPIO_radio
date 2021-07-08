@@ -9,8 +9,8 @@ from time import sleep
 # --- Variables -----------------------------------------------------------------------
 
 GPIO.setmode(GPIO.BOARD)
-GPIO_volUp  	= 11; GPIO.setup(GPIO_volUp,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
-GPIO_volDown  	= 16; GPIO.setup(GPIO_volDown,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
+GPIO_clk        = 11; GPIO.setup(GPIO_clk,      GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+GPIO_dt         = 16; GPIO.setup(GPIO_dt,       GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
 GPIO_mute	= 15; GPIO.setup(GPIO_mute,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO_butA	= 37; GPIO.setup(GPIO_butA,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO_butB	= 31; GPIO.setup(GPIO_butB,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
@@ -61,22 +61,22 @@ while not is_port_in_use(3000):
 # contact API to start up radio
 set_volume(28)
 play_control('play')
+masterVolume = get_status('volume')  # get volume once, and  only sync it back to radio when it changes
 
 # enter hardware loop
 try:
     while True:
-        if GPIO.input(GPIO_volUp) == GPIO.LOW:
-            volume = get_status('volume')
-            if volume < 40:
-                volume += 2
-                set_volume(volume)
-                print('volume set to', str(volume))
-        elif GPIO.input(GPIO_volDown) == GPIO.LOW:
-            volume = get_status('volume')
-            if volume >= 2:
-                volume -= 2
-                set_volume(volume)
-                print('volume set to', str(volume))
+        clkState = GPIO.input(GPIO_clk)
+        dtState = GPIO.input(GPIO_dt)
+        if clkState != clkLastState:
+            if dtState != clkState:
+                if masterVolume < 40:
+                    masterVolume += 2
+                    set_volume(masterVolume)
+            else:
+                if masterVolume >= 2:
+                    masterVolume -= 2
+                    set_volume(masterVolume)
         if GPIO.input(GPIO_mute) == GPIO.LOW:
             play_control('toggle')
             print('Toggled mute/play')
@@ -84,6 +84,8 @@ try:
             print('Button A was pressed!' + str( GPIO.input(GPIO_butA) ) )
         if GPIO.input(GPIO_butB) == GPIO.LOW:
             print('Button B was pressed!')
+        clkLastState = clkState
+        sleep(0.01)
 except:
    GPIO.cleanup()
 
