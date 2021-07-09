@@ -14,6 +14,7 @@ GPIO_dt         = 16; GPIO.setup(GPIO_dt,       GPIO.IN, pull_up_down = GPIO.PUD
 GPIO_mute	= 15; GPIO.setup(GPIO_mute,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO_butA	= 37; GPIO.setup(GPIO_butA,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO_butB	= 31; GPIO.setup(GPIO_butB,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
+clkLastState = GPIO.input(GPIO_clk)
 
 # --- Class / Def ---------------------------------------------------------------------
 
@@ -62,33 +63,34 @@ while not is_port_in_use(3000):
 set_volume(28)
 play_control('play')
 masterVolume = get_status('volume')  # get volume once, and  only sync it back to radio when it changes
+sleep(1)
 
-# enter hardware loop
-try:
-    while True:
-        clkState = GPIO.input(GPIO_clk)
-        dtState = GPIO.input(GPIO_dt)
-        if clkState != clkLastState:
-            if dtState != clkState:
-                if masterVolume < 40:
-                    masterVolume += 2
-                    set_volume(masterVolume)
-            else:
-                if masterVolume >= 2:
-                    masterVolume -= 2
-                    set_volume(masterVolume)
-        if GPIO.input(GPIO_mute) == GPIO.LOW:
-            play_control('toggle')
-            print('Toggled mute/play')
-        if GPIO.input(GPIO_butA) == GPIO.LOW:
-            print('Button A was pressed!' + str( GPIO.input(GPIO_butA) ) )
-        if GPIO.input(GPIO_butB) == GPIO.LOW:
-            print('Button B was pressed!')
+while True:
+    clkState = GPIO.input(GPIO_clk)
+    dtState = GPIO.input(GPIO_dt)
+    if clkState != clkLastState:
+        if dtState != clkState:
+            if masterVolume < 40:
+                masterVolume += 2
+                set_volume(masterVolume)
+                print('Volume up to ' + str(masterVolume))
+        else:
+            if masterVolume >= 2:
+                masterVolume -= 2
+                set_volume(masterVolume)
+                print('Volume down to ' + str(masterVolume))
         clkLastState = clkState
-        sleep(0.01)
-except:
-   GPIO.cleanup()
-
+    if GPIO.input(GPIO_mute) == GPIO.LOW:
+        play_control('toggle')
+        print('Toggled mute/play')
+        sleep(1)
+    if GPIO.input(GPIO_butA) == GPIO.LOW:
+        print('Button A was pressed!' + str( GPIO.input(GPIO_butA) ) )
+        sleep(1)
+    if GPIO.input(GPIO_butB) == GPIO.LOW:
+        print('Button B was pressed!')
+        sleep(1)
+GPIO.cleanup()
 
 # [GPIO Pins]
 #
