@@ -2,6 +2,7 @@
 import json
 import time
 import socket
+import logging
 import subprocess
 import RPi.GPIO as GPIO
 from time import sleep
@@ -55,6 +56,10 @@ def get_status(value):		# status, position, albumart, uri, trackType, seek, samp
 
 # --- Main ----------------------------------------------------------------------------
 
+# setup logging
+logging.basicConfig(filename='/var/log/readGPIO.log', encoding='utf-8', format='%(asctime)s %(message)s', level=logging.DEBUG)
+logging.info('\n\nProgram started')
+
 # wait for port 3000 to respond
 while not is_port_in_use(3000):
     time.sleep(1)
@@ -73,23 +78,29 @@ while True:
             if masterVolume < 40:
                 masterVolume += 2
                 set_volume(masterVolume)
-                print('Volume up to ' + str(masterVolume))
+                logging.info('Volume up to ' + str(masterVolume))
         else:
             if masterVolume >= 2:
                 masterVolume -= 2
                 set_volume(masterVolume)
-                print('Volume down to ' + str(masterVolume))
+                logging.info('Volume down to ' + str(masterVolume))
         clkLastState = clkState
     if GPIO.input(GPIO_mute) == GPIO.LOW:
         play_control('toggle')
-        print('Toggled mute/play')
+        logging.info('Toggled mute/play')
         sleep(1)
     if GPIO.input(GPIO_butA) == GPIO.LOW:
-        print('Button A was pressed!' + str( GPIO.input(GPIO_butA) ) )
-        sleep(1)
+        logging.info('Button A was pressed!' + str( GPIO.input(GPIO_butA) ) )
+	# systemctl restart wireless.service
+        subprocess.run(["systemctl", "stop", "wireless.service"])
+        logging.info('Wireless stopped')
+        sleep(5)
+        subprocess.run(["systemctl", "start", "wireless.service"])
+        logging.info('Wireless started')
     if GPIO.input(GPIO_butB) == GPIO.LOW:
-        print('Button B was pressed!')
+        logging.info('Button B was pressed!')
         sleep(1)
+logging.info('Program terminated')
 GPIO.cleanup()
 
 # [GPIO Pins]

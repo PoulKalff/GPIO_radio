@@ -20,7 +20,6 @@ print()
 print('    ', 'Status:                ', jsonResult['status'])
 print('    ', 'Volume:                ', jsonResult['volume'])
 print('    ', 'Mute:                  ', jsonResult['mute'])
-print('    ', 'DisableVolumeControl:  ', jsonResult['disableVolumeControl'])
 print()
 for key, value in jsonResult.items():
     print('  ', key, ":", value)
