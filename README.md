@@ -3,8 +3,8 @@ Control volumio radio through GPIO pins on Raspberry Pi
 
 Install prerequisites:
 ---------------------------------
-sudo apt install python3-pip
-sudo pip3 install RPi.GPIO
+sudo apt install python3-pip</br>
+sudo pip3 install RPi.GPIO</br>
 
 Install as a service:
 ---------------------------------
