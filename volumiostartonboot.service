@@ -1,10 +1,1 @@
-[Unit]
-Description = Volumio start on boot
-
-[Service]
-Type=oneshot
-ExecStart=/home/volumio/GPIO_radio/readGPIO.py
-
-[Install]
-WantedBy=multi-user.target
-
+/etc/systemd/system/volumiostartonboot.service

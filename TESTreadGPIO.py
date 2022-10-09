@@ -36,7 +36,7 @@ def play_control(value):	# play, toggle, pause, next, prev, stop, clearQueue
 
 
 def set_volume(value):		# 0 - 100
-    """ Set volume of software, by writing to API """
+    """ Set volume, by writing to API """
     result = subprocess.getoutput('/usr/bin/curl -s 0 "http://127.0.0.1:3000/api/v1/commands/?cmd=volume&volume=%s"' % str(value))
     if not result:
         return False
@@ -58,41 +58,63 @@ def get_status(value):		# status, position, albumart, uri, trackType, seek, samp
 
 # setup logging
 logging.basicConfig(filename='/var/log/readGPIO.log', encoding='utf-8', format='%(asctime)s %(message)s', level=logging.DEBUG)
-logging.info('init')
+logging.info('Program init')
 
 # wait for port 3000 to respond
 while not is_port_in_use(3000):
     time.sleep(1)
 
 # contact API to start up radio
-set_volume(60)
-subprocess.Popen("amixer -c 2 cset numid=1 100", stdout=subprocess.PIPE, shell=True).stdout.read()
-masterVolume = 100
+#set_volume(28)
 play_control('play')
+masterVolume = get_status('volume')  # get volume once, and  only sync it back to radio when it changes
+sleep(1)
+
+
+#p = subprocess.Popen('amixer', stdout=subprocess.PIPE, stderr=subprocess.STDOUT, ["-c", "2", "cset", "numid=1"])
+#reply = p.communicate()
+
+#'amixer -c 2 cset numid=1 50'
+#logging.info('amixer value:' + str(reply))
+
+
+# Lav separat variabel, hvis vaerdi opskrives ved drejning, men send foesrt til API naar den ikke drejes mere
+volChange = 0
+count = 0
 
 while True:
     clkState = GPIO.input(GPIO_clk)
     dtState = GPIO.input(GPIO_dt)
     if clkState != clkLastState:
         if dtState != clkState:
-            if masterVolume < 170:
-                masterVolume += 5
-                subprocess.Popen("amixer -c 2 cset numid=1 %s" % (masterVolume), stdout=subprocess.PIPE, shell=True).stdout.read()
-                logging.info('Volume up to ' + str(masterVolume))
+#            masterVolume += 2
+#            set_volume(masterVolume)
+            volChange += 0.3
+ #           logging.info('Volume-change ' + str(volChange))
         else:
-            if masterVolume >= 100:
-                masterVolume -= 5
-                subprocess.Popen("amixer -c 2 cset numid=1 %s" % (masterVolume), stdout=subprocess.PIPE, shell=True).stdout.read()
-                logging.info('Volume down to ' + str(masterVolume))
+#            masterVolume -= 2
+#            set_volume(masterVolume)
+            volChange -= 0.3
+  #          logging.info('Volume-change ' + str(volChange))
         clkLastState = clkState
+        logging.info('clkState != clkLastState, meaning, wheel is turned')
+        count += 1
+    else:
+        if volChange != 0:
+            logging.info('Volume was changed' + str(volChange) + '   ' + str(count))
+            volChange = 0
+
+
+        # remember to check for max/min volume (40/0) before changeing
+
     if GPIO.input(GPIO_mute) == GPIO.LOW:
         play_control('toggle')
-        logging.info('Toggled mute/play')
+        logging.info('Toggled mute/play' + ' --- '  + str(int(volChange)))
         sleep(1)
     if GPIO.input(GPIO_butA) == GPIO.LOW:
-        logging.info('Button A was pressed!')
+        logging.info('Button A was pressed, but no functionality attached')
     if GPIO.input(GPIO_butB) == GPIO.LOW:
-        logging.info('Button B was pressed!')
+        logging.info('Button B was pressed, but no functionality attached')
 logging.info('Program terminated')
 GPIO.cleanup()
 
