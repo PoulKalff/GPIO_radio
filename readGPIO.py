@@ -11,20 +11,14 @@ from rotary_class import RotaryEncoder
 
 # --- Variables -----------------------------------------------------------------------
 
+volume = 35
 
-#GPIO.setmode(GPIO.BOARD)
-#GPIO_clk        = 11; GPIO.setup(GPIO_clk,      GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-#GPIO_dt         = 16; GPIO.setup(GPIO_dt,       GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-#GPIO_mute	= 15; GPIO.setup(GPIO_mute,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
-##GPIO_butA	= 37; GPIO.setup(GPIO_butA,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
-#GPIO_butB	= 31; GPIO.setup(GPIO_butB,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
-#clkLastState = GPIO.input(GPIO_clk)
-
-# Define GPIO inputs
-PIN_A = 17      # Pin 11
-PIN_B = 23      # Pin 16
-BUTTON = 22     # Pin 15
-
+GPIO.setmode(GPIO.BCM)	# not necessary, already set in rotaryEncoder
+GPIO_clk =  17  # Pin 11
+GPIO_dt =   23  # Pin 16
+GPIO_play = 22  # Pin 15
+GPIO_butA = 26; GPIO.setup(GPIO_butA, GPIO.IN, pull_up_down = GPIO.PUD_UP) 	# Pin 37
+GPIO_butB = 6;  GPIO.setup(GPIO_butB, GPIO.IN, pull_up_down = GPIO.PUD_UP)	# Pin 31
 
 # --- Class / Def ---------------------------------------------------------------------
 
@@ -63,16 +57,23 @@ def get_status(value):		# status, position, albumart, uri, trackType, seek, samp
 
 
 def switch_event(event):
+    global volume
     if event == RotaryEncoder.CLOCKWISE:
-        print("Clockwise")
+        if volume < 100: 
+            volume += 1
+#        set_volume(volume)
         logging.info("Clockwise")
+        print("Clockwise",     volume)
     elif event == RotaryEncoder.ANTICLOCKWISE:
-        print("Anticlockwise")
+        if volume > 0:
+            volume -= 1
+#        set_volume(volume)
         logging.info("Anticlockwise")
+        print("Anticlockwise", volume)
     elif event == RotaryEncoder.BUTTONDOWN:
         play_control('toggle')
-        logging.info('Toggled mute/play')
-        print("Toggle Button Down")
+        logging.info('Toggled stop/play')
+        print("Start/Stop Button pressed")
         sleep(1)
     return
 
@@ -88,21 +89,33 @@ while not is_port_in_use(3000):
     time.sleep(1)
 
 # contact API to start up radio, set amixer to 100
-set_volume(20)
+set_volume(volume)
 subprocess.Popen("amixer -c 2 cset numid=1 100", stdout=subprocess.PIPE, shell=True).stdout.read()
 play_control('play')
 
 # Define rotary switch
-rswitch = RotaryEncoder(PIN_A, PIN_B, BUTTON, switch_event)
-logging.info("Started "  + str(rswitch))
+rswitch = RotaryEncoder(GPIO_clk, GPIO_dt, GPIO_play, switch_event)
+logging.info("Started " + str(rswitch))
 
 # Listen continually
 while True:
-        time.sleep(0.5)
+    if GPIO.input(GPIO_butA) == GPIO.LOW:
+        logging.info('Button A was pressed!')
+        print('Button A was pressed!')
+    if GPIO.input(GPIO_butB) == GPIO.LOW:
+        logging.info('Button B was pressed!')
+        print('Button B was pressed!')
+    time.sleep(0.5)
 
 
 
 
+
+
+
+
+
+# --- Notes ---------------------------------------------------------------------------
 
 # [GPIO Pins]
 #
