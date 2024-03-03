@@ -74,17 +74,12 @@ while True:
     clkState = GPIO.input(GPIO_clk)
     dtState = GPIO.input(GPIO_dt)
     if clkState != clkLastState:
-        logging.info('Click detected!')
         if dtState != clkState:
-            # turn up
-            logging.info('   UP')
             if masterVolume < 170:
                 masterVolume += 5
                 subprocess.Popen("amixer -c 2 cset numid=1 %s" % (masterVolume), stdout=subprocess.PIPE, shell=True).stdout.read()
                 logging.info('Volume up to ' + str(masterVolume))
         else:
-            # turn down
-            logging.info('   DOWN')
             if masterVolume >= 100:
                 masterVolume -= 5
                 subprocess.Popen("amixer -c 2 cset numid=1 %s" % (masterVolume), stdout=subprocess.PIPE, shell=True).stdout.read()
