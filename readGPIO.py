@@ -1,24 +1,32 @@
 #!/usr/bin/python3
+import sys
 import json
 import time
 import socket
 import logging
 import subprocess
-import RPi.GPIO as GPIO
 from time import sleep
+import RPi.GPIO as GPIO
+from rotary_class import RotaryEncoder
 
 # --- Variables -----------------------------------------------------------------------
 
-GPIO.setmode(GPIO.BOARD)
-GPIO_clk        = 11; GPIO.setup(GPIO_clk,      GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-GPIO_dt         = 16; GPIO.setup(GPIO_dt,       GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-GPIO_mute	= 15; GPIO.setup(GPIO_mute,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
-GPIO_butA	= 37; GPIO.setup(GPIO_butA,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
-GPIO_butB	= 31; GPIO.setup(GPIO_butB,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
-clkLastState = GPIO.input(GPIO_clk)
+
+#GPIO.setmode(GPIO.BOARD)
+#GPIO_clk        = 11; GPIO.setup(GPIO_clk,      GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+#GPIO_dt         = 16; GPIO.setup(GPIO_dt,       GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+#GPIO_mute	= 15; GPIO.setup(GPIO_mute,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
+##GPIO_butA	= 37; GPIO.setup(GPIO_butA,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
+#GPIO_butB	= 31; GPIO.setup(GPIO_butB,	GPIO.IN, pull_up_down = GPIO.PUD_UP)
+#clkLastState = GPIO.input(GPIO_clk)
+
+# Define GPIO inputs
+PIN_A = 17      # Pin 11
+PIN_B = 23      # Pin 16
+BUTTON = 22     # Pin 15
+
 
 # --- Class / Def ---------------------------------------------------------------------
-
 
 def is_port_in_use(port):
     """ Check if port is up """
@@ -54,6 +62,21 @@ def get_status(value):		# status, position, albumart, uri, trackType, seek, samp
     return singleResult if singleResult else False
 
 
+def switch_event(event):
+    if event == RotaryEncoder.CLOCKWISE:
+        print("Clockwise")
+        logging.info("Clockwise")
+    elif event == RotaryEncoder.ANTICLOCKWISE:
+        print("Anticlockwise")
+        logging.info("Anticlockwise")
+    elif event == RotaryEncoder.BUTTONDOWN:
+        play_control('toggle')
+        logging.info('Toggled mute/play')
+        print("Toggle Button Down")
+        sleep(1)
+    return
+
+
 # --- Main ----------------------------------------------------------------------------
 
 # setup logging
@@ -64,42 +87,22 @@ logging.info('init')
 while not is_port_in_use(3000):
     time.sleep(1)
 
-# contact API to start up radio
-set_volume(60)
+# contact API to start up radio, set amixer to 100
+set_volume(20)
 subprocess.Popen("amixer -c 2 cset numid=1 100", stdout=subprocess.PIPE, shell=True).stdout.read()
-masterVolume = 100
 play_control('play')
 
+# Define rotary switch
+rswitch = RotaryEncoder(PIN_A, PIN_B, BUTTON, switch_event)
+logging.info("Started "  + str(rswitch))
+
+# Listen continually
 while True:
-    clkState = GPIO.input(GPIO_clk)
-    dtState = GPIO.input(GPIO_dt)
-    if clkState != clkLastState:
-        logging.info('Click detected!')
-        if dtState != clkState:
-            # turn up
-            logging.info('   UP')
-            if masterVolume < 170:
-                masterVolume += 5
-                subprocess.Popen("amixer -c 2 cset numid=1 %s" % (masterVolume), stdout=subprocess.PIPE, shell=True).stdout.read()
-                logging.info('Volume up to ' + str(masterVolume))
-        else:
-            # turn down
-            logging.info('   DOWN')
-            if masterVolume >= 100:
-                masterVolume -= 5
-                subprocess.Popen("amixer -c 2 cset numid=1 %s" % (masterVolume), stdout=subprocess.PIPE, shell=True).stdout.read()
-                logging.info('Volume down to ' + str(masterVolume))
-        clkLastState = clkState
-    if GPIO.input(GPIO_mute) == GPIO.LOW:
-        play_control('toggle')
-        logging.info('Toggled mute/play')
-        sleep(1)
-    if GPIO.input(GPIO_butA) == GPIO.LOW:
-        logging.info('Button A was pressed!')
-    if GPIO.input(GPIO_butB) == GPIO.LOW:
-        logging.info('Button B was pressed!')
-logging.info('Program terminated')
-GPIO.cleanup()
+        time.sleep(0.5)
+
+
+
+
 
 # [GPIO Pins]
 #
