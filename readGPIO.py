@@ -11,7 +11,8 @@ from rotary_class import RotaryEncoder
 
 # --- Variables -----------------------------------------------------------------------
 
-volume = 35
+currentVolume = 35
+eventsList = []
 
 GPIO.setmode(GPIO.BCM)	# not necessary, already set in rotaryEncoder
 GPIO_clk =  17  # Pin 11
@@ -37,13 +38,21 @@ def play_control(value):	# play, toggle, pause, next, prev, stop, clearQueue
     return True if jsonResult['response'] == value + ' Success' else False
 
 
-def set_volume(value):		# 0 - 100
-    """ Set volume of software, by writing to API """
-    result = subprocess.getoutput('/usr/bin/curl -s 0 "http://127.0.0.1:3000/api/v1/commands/?cmd=volume&volume=%s"' % str(value))
+def set_volume(counterClockwise, value):
+    """ Checks value, formats, sets volume of volumio by writing to API """
+    print('triggerVolumeChange called with "%s" and "%s"' % (direction, value))
+    logging.info('triggerVolumeChange called with "%s" and "%s"' % (direction, value))
+    newVolume = currentVolume - value if counterClockwise else currentVolume + value
+    if newVolume < 0:
+        newVolume = 0
+    if newVolume > 100:
+        newVolume = 100
+    result = subprocess.getoutput('/usr/bin/curl -s 0 "http://127.0.0.1:3000/api/v1/commands/?cmd=volume&volume=%s"' % str(newVolume))
     if not result:
         return False
     jsonResult = json.loads(result)
     return True if jsonResult['response'] == 'volume Success' else False
+
 
 
 def get_status(value):		# status, position, albumart, uri, trackType, seek, samplerate, bitdepth, channels, random, repeat, repeatSingle, consume, volume, disableVolumeControl, mute, stream, updatedb, volatile, service
@@ -57,19 +66,24 @@ def get_status(value):		# status, position, albumart, uri, trackType, seek, samp
 
 
 def switch_event(event):
-    global volume
+    """ Triggered for each events. Counts seconds from first to last event, calls function when 1 second has changed from first to last event """
+    global eventsList
     if event == RotaryEncoder.CLOCKWISE:
-        if volume < 100: 
-            volume += 1
-#        set_volume(volume)
+        eventsList.append(time.time())
+        if eventsList[-1] - eventsList[0] >= 1:
+            set_volume(False, len(eventsList))
+            eventsList = []
+            currentVolume = newVolume
         logging.info("Clockwise")
-        print("Clockwise",     volume)
+        print("Clockwise")
     elif event == RotaryEncoder.ANTICLOCKWISE:
-        if volume > 0:
-            volume -= 1
-#        set_volume(volume)
+        eventsList.append(time.time())
+        if eventsList[-1] - eventsList[0] >= 1:
+            set_volume(True, (len(eventsList))
+            eventsList = []
+            currentVolume = newVolume
         logging.info("Anticlockwise")
-        print("Anticlockwise", volume)
+        print("Anticlockwise")
     elif event == RotaryEncoder.BUTTONDOWN:
         play_control('toggle')
         logging.info('Toggled stop/play')
@@ -89,7 +103,7 @@ while not is_port_in_use(3000):
     time.sleep(1)
 
 # contact API to start up radio, set amixer to 100
-set_volume(volume)
+set_volume(currentVolume)
 subprocess.Popen("amixer -c 2 cset numid=1 100", stdout=subprocess.PIPE, shell=True).stdout.read()
 play_control('play')
 
