@@ -90,6 +90,7 @@ while not is_port_in_use(3000):
 
 # contact API to start up radio, set amixer to 100
 set_volume(volume)
+logging.info('Volume was set to ' + str(volume)
 subprocess.Popen("amixer -c 2 cset numid=1 100", stdout=subprocess.PIPE, shell=True).stdout.read()
 play_control('play')
 
