@@ -38,24 +38,35 @@ def play_control(value):	# play, toggle, pause, next, prev, stop, clearQueue
     return True if jsonResult['response'] == value + ' Success' else False
 
 
-def set_volume(counterClockwise, value):
+def set_volume(value, counterClockwise):
     """ Checks value, formats, sets volume of volumio by writing to API """
-    print('triggerVolumeChange called with "%s" and "%s"' % (direction, value))
-    logging.info('triggerVolumeChange called with "%s" and "%s"' % (direction, value))
+#    print('triggerVolumeChange called with "%s" and "%s"' % (counterClockwise, value))
+#    logging.info('triggerVolumeChange called with "%s" and "%s"' % (counterClockwise, value))
     newVolume = currentVolume - value if counterClockwise else currentVolume + value
     if newVolume < 0:
         newVolume = 0
     if newVolume > 100:
         newVolume = 100
     result = subprocess.getoutput('/usr/bin/curl -s 0 "http://127.0.0.1:3000/api/v1/commands/?cmd=volume&volume=%s"' % str(newVolume))
-    if not result:
-        return False
-    jsonResult = json.loads(result)
-    return True if jsonResult['response'] == 'volume Success' else False
+    if counterClockwise:
+        print("  -" + str(value))
+        logging.info("  -" + str(value))
+    else:
+        print("  +" + str(value))
+        logging.info("  +" + str(value))
+    print("Volume set to " + str(newVolume))
+    logging.info("Volume set to " + str(newVolume))
+    return newVolume
+#    if not result:
+#        return False
+#    jsonResult = json.loads(result)
+ #   return True if jsonResult['response'] == 'volume Success' else False
 
 
 
-def get_status(value):		# status, position, albumart, uri, trackType, seek, samplerate, bitdepth, channels, random, repeat, repeatSingle, consume, volume, disableVolumeControl, mute, stream, updatedb, volatile, service
+# status, position, albumart, uri, trackType, seek, samplerate, bitdepth, channels, random, 
+#	repeat, repeatSingle, consume, volume, disableVolumeControl, mute, stream, updatedb, volatile, service
+def get_status(value):
     """ Get status category, by writing to API, sort and return """
     result = subprocess.getoutput('/usr/bin/curl -s 0 http://127.0.0.1:3000/api/v1/getstate')
     if not result:
@@ -67,23 +78,23 @@ def get_status(value):		# status, position, albumart, uri, trackType, seek, samp
 
 def switch_event(event):
     """ Triggered for each events. Counts seconds from first to last event, calls function when 1 second has changed from first to last event """
-    global eventsList
+    global eventsList, currentVolume
     if event == RotaryEncoder.CLOCKWISE:
         eventsList.append(time.time())
         if eventsList[-1] - eventsList[0] >= 1:
-            set_volume(False, len(eventsList))
+            currentVolume = set_volume(len(eventsList), False)
             eventsList = []
-            currentVolume = newVolume
-        logging.info("Clockwise")
-        print("Clockwise")
+    #        print(currentVolume)
+#        logging.info("Clockwise")
+#        print("Clockwise")
     elif event == RotaryEncoder.ANTICLOCKWISE:
         eventsList.append(time.time())
-        if eventsList[-1] - eventsList[0] >= 1:
-            set_volume(True, (len(eventsList))
+        if eventsList[-1] - eventsList[0] >= 0.3:
+            currentVolume = set_volume(len(eventsList), True)
             eventsList = []
-            currentVolume = newVolume
-        logging.info("Anticlockwise")
-        print("Anticlockwise")
+    #        print(currentVolume)
+#        logging.info("Anticlockwise")
+#        print("Anticlockwise")
     elif event == RotaryEncoder.BUTTONDOWN:
         play_control('toggle')
         logging.info('Toggled stop/play')
@@ -102,13 +113,10 @@ logging.info('init')
 while not is_port_in_use(3000):
     time.sleep(1)
 
+
 # contact API to start up radio, set amixer to 100
-<<<<<<< HEAD
-set_volume(volume)
-logging.info('Volume was set to ' + str(volume)
-=======
-set_volume(currentVolume)
->>>>>>> 6c8410e669bffbb74fe3eacf27278a4158fc9f1a
+set_volume(0, True)
+logging.info('Volume was set to ' + str(currentVolume))
 subprocess.Popen("amixer -c 2 cset numid=1 100", stdout=subprocess.PIPE, shell=True).stdout.read()
 play_control('play')
 
