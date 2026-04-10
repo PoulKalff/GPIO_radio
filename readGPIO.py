@@ -104,11 +104,11 @@ while True:
         logging.info('Button A was pressed!')
     if GPIO.input(GPIO_butB) == GPIO.LOW:
         logging.info('Button B was pressed!')
-    if len(eventsList) > 0:
-        if time.time() - eventsList[0][1] >= 0.2:
-            currentVolume = set_volume(len(eventsList), eventsList[0][0])
+    if len(eventsList) > 0:	# if rotary encoder event has added anything to the event list
+        if time.time() - eventsList[0][1] >= 0.2:	# if the first event is more than 0.2 seconds old (check to avoid repeated calls to API)
+            currentVolume = set_volume(len(eventsList), eventsList[0][0])	# call API
             print("Changing volume", "DOWN" if eventsList[0][0] else "UP", "by", str(len(eventsList)) + ". Volume is now", currentVolume)
-            eventsList = []
+            eventsList = []	# reset list
 
 
 
