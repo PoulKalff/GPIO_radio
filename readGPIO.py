@@ -67,23 +67,9 @@ def switch_event(event):
     """ Triggered for each events. Counts seconds from first to last event, calls function when 1 second has changed from first to last event """
     global eventsList, currentVolume
     if event == RotaryEncoder.CLOCKWISE:
-        eventsList.append(time.time())
-        logging.info("SWITCH_EVENT: Clockwise=" + str(len(eventsList)))
-        if len(eventsList) > 0:
-            logging.info("      Difference since first event and now(): " + str(time.time() - eventsList[0]))
-            if time.time() - eventsList[0] >= 0.2:
-                logging.info("      TRIGGERED!" + str(eventsList) + str(time.time() - eventsList[0]))
-                currentVolume = set_volume(len(eventsList), False)
-                eventsList = []
+        eventsList.append([0, time.time()])
     elif event == RotaryEncoder.ANTICLOCKWISE:
-        eventsList.append(time.time())
-        logging.info("SWITCH_EVENT: Anticlockwise=" + str(len(eventsList)))
-        if len(eventsList) > 0:
-            logging.info("      Difference since first event and now(): " + str(time.time() - eventsList[0]))
-            if time.time() - eventsList[0] >= 0.2:
-                logging.info("      TRIGGERED!" + str(eventsList) + str(time.time() - eventsList[0]))
-                currentVolume = set_volume(len(eventsList), True)
-                eventsList = []
+        eventsList.append([1, time.time()])
     elif event == RotaryEncoder.BUTTONDOWN:
         play_control('toggle')
         logging.info('Toggled stop/play')
@@ -118,18 +104,11 @@ while True:
         logging.info('Button A was pressed!')
     if GPIO.input(GPIO_butB) == GPIO.LOW:
         logging.info('Button B was pressed!')
-
-
-
-    print(len(eventsList))
-
-
-    time.sleep(0.5)
-
-
-
-
-
+    if len(eventsList) > 0:
+        if time.time() - eventsList[0][1] >= 0.2:
+            currentVolume = set_volume(len(eventsList), eventsList[0][0])
+            print("Changing volume", "DOWN" if eventsList[0][0] else "UP", "by", str(len(eventsList)) + ". Volume is now", currentVolume)
+            eventsList = []
 
 
 
