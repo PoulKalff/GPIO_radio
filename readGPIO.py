@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import os
 import sys
 import json
 import time
@@ -40,22 +41,15 @@ def play_control(value):	# play, toggle, pause, next, prev, stop, clearQueue
 
 def set_volume(value, counterClockwise):
     """ Checks value, formats, sets volume of volumio by writing to API """
-#    print('triggerVolumeChange called with "%s" and "%s"' % (counterClockwise, value))
-#    logging.info('triggerVolumeChange called with "%s" and "%s"' % (counterClockwise, value))
+    logging.info('triggerVolumeChange called with "%s" and "%s"' % (counterClockwise, value))
     newVolume = currentVolume - value if counterClockwise else currentVolume + value
     if newVolume < 0:
         newVolume = 0
     if newVolume > 100:
         newVolume = 100
     result = subprocess.getoutput('/usr/bin/curl -s 0 "http://127.0.0.1:3000/api/v1/commands/?cmd=volume&volume=%s"' % str(newVolume))
-    if counterClockwise:
-        print("  -" + str(value))
-        logging.info("  -" + str(value))
-    else:
-        print("  +" + str(value))
-        logging.info("  +" + str(value))
-    print("Volume set to " + str(newVolume))
-    logging.info("Volume set to " + str(newVolume))
+    direction = "+" if counterClockwise else "-"
+    logging.info("Volume set to " + direction + str(newVolume))
     return newVolume
 #    if not result:
 #        return False
@@ -80,25 +74,20 @@ def switch_event(event):
     """ Triggered for each events. Counts seconds from first to last event, calls function when 1 second has changed from first to last event """
     global eventsList, currentVolume
     if event == RotaryEncoder.CLOCKWISE:
+        logging.info("SWITCH_EVENT: Clockwise=" + str(len(eventsList)))
         eventsList.append(time.time())
         if eventsList[-1] - eventsList[0] >= 1:
             currentVolume = set_volume(len(eventsList), False)
             eventsList = []
-    #        print(currentVolume)
-#        logging.info("Clockwise")
-#        print("Clockwise")
     elif event == RotaryEncoder.ANTICLOCKWISE:
+        logging.info("SWITCH_EVENT: Anticlockwise=" + str(len(eventsList)))
         eventsList.append(time.time())
         if eventsList[-1] - eventsList[0] >= 0.3:
             currentVolume = set_volume(len(eventsList), True)
             eventsList = []
-    #        print(currentVolume)
-#        logging.info("Anticlockwise")
-#        print("Anticlockwise")
     elif event == RotaryEncoder.BUTTONDOWN:
         play_control('toggle')
         logging.info('Toggled stop/play')
-        print("Start/Stop Button pressed")
         sleep(1)
     return
 
@@ -107,6 +96,7 @@ def switch_event(event):
 
 # setup logging
 logging.basicConfig(filename='/var/log/readGPIO.log', encoding='utf-8', format='%(asctime)s %(message)s', level=logging.DEBUG)
+#os.chmod("/var/log/readGPIO.log", 0o777)
 logging.info('init')
 
 # wait for port 3000 to respond
@@ -116,7 +106,6 @@ while not is_port_in_use(3000):
 
 # contact API to start up radio, set amixer to 100
 set_volume(0, True)
-logging.info('Volume was set to ' + str(currentVolume))
 subprocess.Popen("amixer -c 2 cset numid=1 100", stdout=subprocess.PIPE, shell=True).stdout.read()
 play_control('play')
 
@@ -128,10 +117,8 @@ logging.info("Started " + str(rswitch))
 while True:
     if GPIO.input(GPIO_butA) == GPIO.LOW:
         logging.info('Button A was pressed!')
-        print('Button A was pressed!')
     if GPIO.input(GPIO_butB) == GPIO.LOW:
         logging.info('Button B was pressed!')
-        print('Button B was pressed!')
     time.sleep(0.5)
 
 
