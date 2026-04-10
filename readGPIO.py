@@ -41,21 +41,14 @@ def play_control(value):	# play, toggle, pause, next, prev, stop, clearQueue
 
 def set_volume(value, counterClockwise):
     """ Checks value, formats, sets volume of volumio by writing to API """
-    logging.info('triggerVolumeChange called with "%s" and "%s"' % (counterClockwise, value))
     newVolume = currentVolume - value if counterClockwise else currentVolume + value
     if newVolume < 0:
         newVolume = 0
     if newVolume > 100:
         newVolume = 100
     result = subprocess.getoutput('/usr/bin/curl -s 0 "http://127.0.0.1:3000/api/v1/commands/?cmd=volume&volume=%s"' % str(newVolume))
-    direction = "+" if counterClockwise else "-"
-    logging.info("Volume set to " + direction + str(newVolume))
+    logging.info('set_volume() called with "%s%s". Volume is now "%s"' % ("-" if counterClockwise else "+", value, str(newVolume)))
     return newVolume
-#    if not result:
-#        return False
-#    jsonResult = json.loads(result)
- #   return True if jsonResult['response'] == 'volume Success' else False
-
 
 
 # status, position, albumart, uri, trackType, seek, samplerate, bitdepth, channels, random, 
@@ -74,17 +67,23 @@ def switch_event(event):
     """ Triggered for each events. Counts seconds from first to last event, calls function when 1 second has changed from first to last event """
     global eventsList, currentVolume
     if event == RotaryEncoder.CLOCKWISE:
+        eventsList.append(time.time())
         logging.info("SWITCH_EVENT: Clockwise=" + str(len(eventsList)))
-        eventsList.append(time.time())
-        if eventsList[-1] - eventsList[0] >= 1:
-            currentVolume = set_volume(len(eventsList), False)
-            eventsList = []
+        if len(eventsList) > 0:
+            logging.info("      Difference since first event and now(): " + str(time.time() - eventsList[0]))
+            if time.time() - eventsList[0] >= 0.2:
+                logging.info("      TRIGGERED!" + str(eventsList) + str(time.time() - eventsList[0]))
+                currentVolume = set_volume(len(eventsList), False)
+                eventsList = []
     elif event == RotaryEncoder.ANTICLOCKWISE:
-        logging.info("SWITCH_EVENT: Anticlockwise=" + str(len(eventsList)))
         eventsList.append(time.time())
-        if eventsList[-1] - eventsList[0] >= 0.3:
-            currentVolume = set_volume(len(eventsList), True)
-            eventsList = []
+        logging.info("SWITCH_EVENT: Anticlockwise=" + str(len(eventsList)))
+        if len(eventsList) > 0:
+            logging.info("      Difference since first event and now(): " + str(time.time() - eventsList[0]))
+            if time.time() - eventsList[0] >= 0.2:
+                logging.info("      TRIGGERED!" + str(eventsList) + str(time.time() - eventsList[0]))
+                currentVolume = set_volume(len(eventsList), True)
+                eventsList = []
     elif event == RotaryEncoder.BUTTONDOWN:
         play_control('toggle')
         logging.info('Toggled stop/play')
@@ -119,6 +118,12 @@ while True:
         logging.info('Button A was pressed!')
     if GPIO.input(GPIO_butB) == GPIO.LOW:
         logging.info('Button B was pressed!')
+
+
+
+    print(len(eventsList))
+
+
     time.sleep(0.5)
 
 
