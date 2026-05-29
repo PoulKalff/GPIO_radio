@@ -18,6 +18,7 @@ from rotary_class import RotaryEncoder
 counter = 0
 currentVolume = 35
 currentTrack = "None"
+currentlyPlaying = False
 eventsList = []
 
 GPIO.setmode(GPIO.BCM)	# not necessary, already set in rotaryEncoder
@@ -80,7 +81,7 @@ def get_status(value):
 
 def switch_event(event):
     """ Triggered for each events. Counts seconds from first to last event, calls function when 1 second has changed from first to last event """
-    global eventsList, currentVolume
+    global eventsList, currentVolume, currentlyPlaying
     if event == RotaryEncoder.CLOCKWISE:
         eventsList.append([0, time.time()])
     elif event == RotaryEncoder.ANTICLOCKWISE:
@@ -88,6 +89,7 @@ def switch_event(event):
     elif event == RotaryEncoder.BUTTONDOWN:
         play_control('toggle')
         logging.info('Toggled stop/play')
+        currentlyPlaying = False if currentlyPlaying else True
         OutputToScreen.output("Toggled STOP/START")
         sleep(1)
     return
@@ -109,6 +111,15 @@ def getTitle():
         semicolon_pos = post_title_content.find(';')
         title = post_title_content[:semicolon_pos-1]
     return title
+
+
+def restart_computer():
+    """Restart the computer immediately on Windows"""
+    try:
+        subprocess.call(["shutdown", "/r", "/t", "0"])
+        print("Computer restart initiated...")
+    except Exception as e:
+        print(f"Error: {e}")
 
 
 # --- Main ----------------------------------------------------------------------------
@@ -143,7 +154,7 @@ logging.info("Started " + str(rswitch))
 
 # read initalt metadata
 title = getTitle()
-OutputToScreen.output(title)
+OutputToScreen.output("Now playing : " + title)
 
 
 # Listen continually
@@ -157,6 +168,7 @@ while True:
         logging.info('Button B was pressed!')
         OutputToScreen.output("Button B pressed")
         sleep(1)
+        restart_computer()
     if len(eventsList) > 0:	# if rotary encoder event has added anything to the event list
         if time.time() - eventsList[0][1] >= 0.2:	# if the first event is more than 0.2 seconds old (check to avoid repeated calls to API)
             currentVolume = set_volume(len(eventsList), eventsList[0][0])	# call API
@@ -164,7 +176,7 @@ while True:
             OutputToScreen.output("[" + "*" * int((currentVolume / 2)) + " " * (50 - int(currentVolume / 2)) + "] " + str(currentVolume) + "%")
             eventsList = []	# reset list
     # TESTING ------------------------------------------------------------
-    if counter == 500000:		# read metadate regulary, but not continuously
+    if currentlyPlaying and counter == 500000:		# read metadate regulary, but not continuously
         title = getTitle()
         if title != currentTrack:
             OutputToScreen.output("Now playing : " + title)
