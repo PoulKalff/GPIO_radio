@@ -1,12 +1,11 @@
-	#!/usr/bin/python3
+#!/usr/bin/python3
 import sys
 import json
 import time
 import socket
 import logging
 import subprocess
-#import urllib.request
-import http.client
+import urllib.request
 from time import sleep
 import RPi.GPIO as GPIO
 from rotary_class import RotaryEncoder
@@ -16,7 +15,7 @@ from rotary_class import RotaryEncoder
 
 # --- Variables -----------------------------------------------------------------------
 
-counter = 0
+counter = 50000
 currentVolume = 35
 currentTrack = "None"
 currentlyPlaying = True
@@ -99,31 +98,27 @@ def switch_event(event):
 
 
 def showTitle():
-    lastTitle = ""
-    try:
-        # Opret forbindelse til API'et
-        conn = http.client.HTTPSConnection("public.radio.co")
-        conn.request("GET", "/api/v2/s6a349b3a2/track/current")
-        response = conn.getresponse()
+    request = urllib.request.Request(radioStation, headers={'Icy-MetaData' : 1})
+    response = urllib.request.urlopen(request)
+    icy_metaint_header = response.headers.get('icy-metaint')
+    if icy_metaint_header is not None:
+        metaint = int(icy_metaint_header)
+        read_buffer = metaint+255
+        content = response.read(read_buffer)
+        content_str = ""
+        for _byte in content:
+            content_str += chr(int(_byte))
+        stream_title_pos = content_str.find("StreamTitle=")
+        post_title_content = content_str[stream_title_pos+13:]
+        semicolon_pos = post_title_content.find(';')
+        title = post_title_content[:semicolon_pos-1]
+        # TESTING ------------------------------------------------------------
+        print("TESTING: Title=", title, "currentTitle=", currentTrack)
+        # TESTING ------------------------------------------------------------
+        if title and title != currentTrack:
+            OutputToScreen.output("Now playing : " + title)
+            currentTrack = title
 
-        if response.status == 200:
-            data = response.read().decode('utf-8')
-            info = json.loads(data)
-            jsonData = info["data"]
-            currentTitle = jsonData['title']
-
-            # Opdater kun skærmen, hvis sangen er skiftet
-            if currentTitle != lastTitle:
-                print("Now playing:     ", currentTitle)
-                lastTitle = currentTitle
-        else:
-            print("Kunne ikke hente data. HTTP Status: {response.status}")
-
-        conn.close()
-
-    except Exception as e:
-        # Håndterer netværksfejl uden at stoppe programmet
-        print("Forbindelsesfejl: {e}")
 
 
 def restart_computer():
@@ -173,9 +168,6 @@ logging.info("Started " + str(rswitch))
 # Listen continually
 while True:
     counter += 1
-    if counter == 50000:
-        counter = 0
-        showTitle()
     if GPIO.input(GPIO_butA) == GPIO.LOW:
         logging.info('Button A was pressed!')
         OutputToScreen.output("Button A pressed")
@@ -191,6 +183,9 @@ while True:
 #            OutputToScreen.output("Volume DOWN" if eventsList[0][0] else "Volume UP" + " by " + str(len(eventsList)) + ". Volume is now " + str(currentVolume))
             OutputToScreen.output("[" + "*" * int((currentVolume / 2)) + " " * (50 - int(currentVolume / 2)) + "] " + str(currentVolume) + "%")
             eventsList = []	# reset list
+    if currentlyPlaying and counter == 50000:		# read metadate regulary, but not continuously
+        counter = 0
+        showTitle()
 
 
 # --- Notes ---------------------------------------------------------------------------
