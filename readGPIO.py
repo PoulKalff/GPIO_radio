@@ -17,6 +17,7 @@ from rotary_class import RotaryEncoder
 # --- Variables -----------------------------------------------------------------------
 
 counter = 0
+lastTitle = ""
 currentVolume = 35
 currentTrack = "None"
 currentlyPlaying = True
@@ -99,7 +100,7 @@ def switch_event(event):
 
 
 def showTitle():
-    lastTitle = ""
+    global lastTitle
     try:
         # Opret forbindelse til API'et
         conn = http.client.HTTPSConnection("public.radio.co")
@@ -113,17 +114,18 @@ def showTitle():
             currentTitle = jsonData['title']
 
             # Opdater kun skærmen, hvis sangen er skiftet
-            if currentTitle != lastTitle:
-                print("Now playing:     ", currentTitle)
+            if currentTitle != lastTitle or lastTitle == "":
+#                print("Current  ", currentTitle)
+ #               print("Last     ", lastTitle)
+                OutputToScreen.output("Now playing:     " + currentTitle)
                 lastTitle = currentTitle
         else:
-            print("Kunne ikke hente data. HTTP Status: {response.status}")
-
+            print("Could not get data. HTTP Status:", response.status)
         conn.close()
 
     except Exception as e:
         # Håndterer netværksfejl uden at stoppe programmet
-        print("Forbindelsesfejl: {e}")
+        print("Unknown Exception:", e)
 
 
 def restart_computer():
@@ -173,17 +175,17 @@ logging.info("Started " + str(rswitch))
 # Listen continually
 while True:
     counter += 1
-    if counter == 50000:
+    if counter == 250000:
         counter = 0
         showTitle()
     if GPIO.input(GPIO_butA) == GPIO.LOW:
         logging.info('Button A was pressed!')
-        OutputToScreen.output("Button A pressed")
+        OutputToScreen.output("Changing track to next in playlist")
+        play_control('next')
         sleep(1)
     if GPIO.input(GPIO_butB) == GPIO.LOW:
         logging.info('Button B was pressed!')
         OutputToScreen.output("Button B pressed")
-        sleep(1)
         restart_computer()
     if len(eventsList) > 0:	# if rotary encoder event has added anything to the event list
         if time.time() - eventsList[0][1] >= 0.2:	# if the first event is more than 0.2 seconds old (check to avoid repeated calls to API)
