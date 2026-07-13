@@ -1,4 +1,4 @@
-	#!/usr/bin/python3
+#!/usr/bin/python3
 import sys
 import json
 import time
@@ -22,15 +22,15 @@ currentVolume = 35
 currentTrack = "None"
 currentlyPlaying = True
 #radioStation = 'http://streamer.radio.co/s6a349b3a2/listen'
-radioStation = "https://play.rockantenne.de/heavy-metal.m3u"
+#radioStation = "https://play.rockantenne.de/heavy-metal.m3u"
 eventsList = []
 
 GPIO.setmode(GPIO.BCM)	# not necessary, already set in rotaryEncoder
 GPIO_clk =  17  # Pin 11
 GPIO_dt =   23  # Pin 16
 GPIO_play = 22  # Pin 15
-GPIO_butA = 6;   GPIO.setup(GPIO_butA, GPIO.IN, pull_up_down = GPIO.PUD_UP) 	# Pin 37
-GPIO_butB = 26;  GPIO.setup(GPIO_butB, GPIO.IN, pull_up_down = GPIO.PUD_UP)	# Pin 31
+GPIO_butA = 6;	GPIO.setup(GPIO_butA, GPIO.IN, pull_up_down = GPIO.PUD_UP) 	# Pin 37
+GPIO_butB = 26;	GPIO.setup(GPIO_butB, GPIO.IN, pull_up_down = GPIO.PUD_UP)	# Pin 31
 
 # --- Class / Def ---------------------------------------------------------------------
 
@@ -40,8 +40,9 @@ class ToScreen():
         self.showOutput = activate
 
     def output(self, msg):
+        cleanString = msg.encode('ascii', errors='replace').decode('ascii')
         if self.showOutput:
-            print(msg)
+            print(cleanString)
 
 
 def is_port_in_use(port):
@@ -76,11 +77,14 @@ def set_volume(value, counterClockwise):
 def get_status(value):
     """ Get status category, by writing to API, sort and return """
     result = subprocess.getoutput('/usr/bin/curl -s 0 http://127.0.0.1:3000/api/v1/getstate')
-    if not result:
+    if type(result) != str:
         return False
     jsonResult = json.loads(result)
-    singleResult =  jsonResult[value]
-    return singleResult if singleResult else False
+    if value in jsonResult:
+        singleResult = jsonResult[value]
+        return singleResult if singleResult else False
+    else:
+        return result
 
 
 def switch_event(event):
@@ -93,9 +97,9 @@ def switch_event(event):
     elif event == RotaryEncoder.BUTTONDOWN:
         play_control('toggle')
         logging.info('Toggled stop/play')
-        currentlyPlaying = False if currentlyPlaying else True
         OutputToScreen.output("Toggled STOP/START")
         sleep(1)
+        currentlyPlaying = True if get_status("status") == "play" else False
     return
 
 
@@ -112,12 +116,9 @@ def showTitle():
             info = json.loads(data)
             jsonData = info["data"]
             currentTitle = jsonData['title']
-
             # Opdater kun skærmen, hvis sangen er skiftet
             if currentTitle != lastTitle or lastTitle == "":
-#                print("Current  ", currentTitle)
- #               print("Last     ", lastTitle)
-                OutputToScreen.output("Now playing:     " + currentTitle)
+                OutputToScreen.output("Now playing:     " + str(currentTitle))
                 lastTitle = currentTitle
         else:
             print("Could not get data. HTTP Status:", response.status)
@@ -167,9 +168,8 @@ rswitch = RotaryEncoder(GPIO_clk, GPIO_dt, GPIO_play, switch_event)
 logging.info("Started " + str(rswitch))
 
 
-# read initalt metadata								REMOVED, Testing: set counter to max to force read at init
-#title = getTitle()
-#OutputToScreen.output("Now playing : " + str(title))
+# Display track at init
+showTitle()
 
 
 # Listen continually
@@ -177,20 +177,27 @@ while True:
     counter += 1
     if counter == 250000:
         counter = 0
-        showTitle()
+        if currentlyPlaying:
+            showTitle()
     if GPIO.input(GPIO_butA) == GPIO.LOW:
-        logging.info('Button A was pressed!')
-        OutputToScreen.output("Changing track to next in playlist")
-        play_control('next')
-        sleep(1)
+        logging.info('Button A was pressed')
+        OutputToScreen.output("Selecting previous track in playlist")
+        play_control('prev')
+        sleep(3)
+        track = get_status("artist")
+        OutputToScreen.output("Now playing:" + str(track))
+        showTitle()
     if GPIO.input(GPIO_butB) == GPIO.LOW:
-        logging.info('Button B was pressed!')
-        OutputToScreen.output("Button B pressed")
-        restart_computer()
+        logging.info('Button B was pressed')
+        OutputToScreen.output("Selecting next track in playlist")
+        play_control('next')
+        sleep(3)
+        track = get_status("artist")
+        OutputToScreen.output("Now playing:" + str(track))
+        showTitle()
     if len(eventsList) > 0:	# if rotary encoder event has added anything to the event list
         if time.time() - eventsList[0][1] >= 0.2:	# if the first event is more than 0.2 seconds old (check to avoid repeated calls to API)
             currentVolume = set_volume(len(eventsList), eventsList[0][0])	# call API
-#            OutputToScreen.output("Volume DOWN" if eventsList[0][0] else "Volume UP" + " by " + str(len(eventsList)) + ". Volume is now " + str(currentVolume))
             OutputToScreen.output("[" + "*" * int((currentVolume / 2)) + " " * (50 - int(currentVolume / 2)) + "] " + str(currentVolume) + "%")
             eventsList = []	# reset list
 
